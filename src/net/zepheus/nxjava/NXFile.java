@@ -31,7 +31,7 @@ public class NXFile {
 	
 	public static final String PKG_FORMAT = "PKG3";
 	private static final boolean OPEN_BY_DEFAULT = true;
-	private static final EnumSet<NXReadMode> DEFAULT_PARSE_MODE = EnumSet.noneOf(NXReadMode.class);
+	private static final EnumSet<NXReadMode> DEFAULT_PARSE_MODE = EnumSet.of(NXReadMode.EAGER_PARSE_STRINGS);
 	
 	// Read properties
 	private boolean low_memory;
@@ -52,10 +52,10 @@ public class NXFile {
 	private String[] strings;
 	private byte[][] stringsb;
 	
-	// low memory arrays
 	private long[] string_offsets;
-	
 	private long[] bmp_offsets;
+	private long[] mp3_offsets;
+	
 	private NXNode root;
 	
 	public NXFile(String path) throws FileNotFoundException, IOException {
@@ -179,16 +179,35 @@ public class NXFile {
 			return -1;
 		
 		if(bmp_offsets == null) {
+			bmp_offsets = new long[count];
 			lock();
 			try {
-				slea.seek(header.getBmpOffset());
-				bmp_offsets = new long[count];
-				for(int i = 0; i < count; i++) {
-					bmp_offsets[i] = slea.getLong();
-				}
+				populateOffsetTable(bmp_offsets, header.getBmpOffset());
 			} finally { unlock(); }
 		}
 		return bmp_offsets[id];
+	}
+	
+	public long getMP3Offset(int id) {
+		int count = header.getMp3Count();
+		if(count == 0 || id > count)
+			return -1;
+		
+		if(mp3_offsets == null) {
+			mp3_offsets = new long[count];
+			lock();
+			try {
+				populateOffsetTable(mp3_offsets, header.getMp3Offset());
+			} finally { unlock(); }
+		}
+		return mp3_offsets[id];
+	}
+	
+	private void populateOffsetTable(long[] to, long start) {
+		slea.seek(start);
+		for(int i = 0; i < to.length; i++) {
+			to[i] = slea.getLong();
+		}
 	}
 	
 	public SeekableLittleEndianAccessor getNodeStream(int id) {

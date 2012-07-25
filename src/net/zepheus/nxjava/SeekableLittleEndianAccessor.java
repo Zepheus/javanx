@@ -18,7 +18,6 @@
 
 package net.zepheus.nxjava;
 
-import java.awt.Point;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;

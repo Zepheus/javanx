@@ -23,8 +23,11 @@ import java.util.EnumSet;
 import net.zepheus.nxjava.*;
 
 public class LazyLoad {
-	private static final int COUNT = 10;
+
+	private static final String DATA_PATH = "D:\\Games\\MapleBeta\\DataOnly.nx";
+	
 	private static final EnumSet<NXReadMode> PROPERTIES = EnumSet.of(NXReadMode.LOW_MEMORY);
+	private static final int COUNT = 10;
 	
 	public static void main(String[] args) {
 		try {
@@ -32,7 +35,7 @@ public class LazyLoad {
 			long averageTotal = 0;
 			for(int i = 0; i < COUNT; i++) {
 				long start = System.currentTimeMillis();
-				NXFile file = new NXFile("D:\\Games\\MapleBeta\\DataOnly.nx", PROPERTIES);
+				NXFile file = new NXFile(DATA_PATH, PROPERTIES);
 				System.out.println(file.getString(50 + i));
 				long time = System.currentTimeMillis() - start;
 				averageTotal += time;

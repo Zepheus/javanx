@@ -34,9 +34,9 @@ public class Benchmark {
 		try {
 				System.in.read();
 				NXFile file = loadTest(FILE_PATH);
-				//accessTest(file, 1000000);
+				accessTest(file, 1000000);
 				recurseTest(file);
-				//memoryTest();
+				memoryTest();
 				System.out.println("Finished. Press [RETURN] to end.");
 				System.in.read();
 				file.close();

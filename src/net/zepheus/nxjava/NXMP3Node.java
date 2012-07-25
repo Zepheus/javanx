@@ -18,9 +18,13 @@
 
 package net.zepheus.nxjava;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+
 public class NXMP3Node extends NXNode {
 
 	private int mp3Id;
+	private byte[] data;
 	
 	public NXMP3Node(String name, NXNode parent, NXFile file, int childCount, int mp3Id) {
 		super(name, parent, file, childCount);
@@ -29,6 +33,28 @@ public class NXMP3Node extends NXNode {
 	
 	@Override
 	public Object getValue() {
-		throw new UnsupportedOperationException();
+		return getMP3();
+	}
+	
+	public void play() {
+		InputStream stream = new ByteArrayInputStream(getMP3());
+		BinarySoundPlayer.play(stream);
+	}
+	
+	public byte[] getMP3() {
+		if(data == null) {
+			// Warning: lock has to come AFTER offset request!
+			long offset = file.getMP3Offset(mp3Id);
+			if(offset < 0)
+				throw new NXException("MP3 index was out of bounds.");
+			
+			file.lock();
+			try {
+				SeekableLittleEndianAccessor slea = file.getStreamAtOffset(offset);
+				int size = (int)slea.getUInt(); //Warning: this could go out of bounds (but unlikely)
+				data = slea.getBytes(size);
+			} finally { file.unlock(); }
+		}
+		return data;
 	}
 }

@@ -16,11 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.zepheus.nxjava;
+package net.zepheus.nxjava.tests;
 
-public class NXException extends RuntimeException {
+import net.zepheus.nxjava.*;
+
+public class SoundTest {
+	private static final String DATA_PATH = "D:\\Games\\MapleBeta\\Data.nx";
+	private static final String[] SOUND_PATH = { "Sound", "Bgm07.img", "FunnyTimeMaker" };
 	
-	public NXException(String message) {
-		super(message);
+	public static void main(String[] args) {
+		try {
+			NXFile file = new NXFile(DATA_PATH);
+			
+			NXMP3Node mp3 = (NXMP3Node)file.resolvePath(SOUND_PATH);
+			mp3.play();
+			
+			System.out.println("To exit the process, press [RETURN].");
+			System.in.read();
+		} catch (Exception ex) {
+			System.out.println(ex.getMessage());
+		}
 	}
 }
