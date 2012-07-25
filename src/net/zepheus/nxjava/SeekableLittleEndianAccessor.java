@@ -144,13 +144,6 @@ public class SeekableLittleEndianAccessor {
 		return byteBuffer.getDouble();
 	}
 	
-	/**
-	 * Gets the next <code>Point</code>, or 2D coordinate from the buffer.
-	 * @return the next <code>Point</code> in the buffer
-	 */
-	public Point getPoint() {
-		return new Point(this.getInt(), this.getInt());
-	}
 
 	public String getUTFString() {
 		return SeekableLittleEndianAccessor.getUTF(this);

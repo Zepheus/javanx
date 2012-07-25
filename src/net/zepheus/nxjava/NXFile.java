@@ -33,6 +33,10 @@ public class NXFile {
 	private static final boolean OPEN_BY_DEFAULT = true;
 	private static final EnumSet<NXReadMode> DEFAULT_PARSE_MODE = EnumSet.noneOf(NXReadMode.class);
 	
+	// Read properties
+	private boolean low_memory;
+	private boolean lazy_strings;
+	
 	// File access stuff
 	private final RandomAccessFile file;
 	private ByteBuffer byteBuffer;
@@ -40,7 +44,6 @@ public class NXFile {
 	private SeekableLittleEndianAccessor node_reader;
 	private boolean parsed;
 	private boolean closed;
-	private boolean low_memory;
 	private final ReentrantLock lock = new ReentrantLock();
 	
 	// Format specific properties
@@ -48,11 +51,19 @@ public class NXFile {
 	private NXHeader header;
 	private String[] strings;
 	private byte[][] stringsb;
+	
+	// low memory arrays
+	private long[] string_offsets;
+	
 	private long[] bmp_offsets;
 	private NXNode root;
 	
 	public NXFile(String path) throws FileNotFoundException, IOException {
 		this(new RandomAccessFile(path, "r"));
+	}
+	
+	public NXFile(String path, EnumSet<NXReadMode> properties) throws FileNotFoundException, IOException {
+		this(new RandomAccessFile(path, "r"), OPEN_BY_DEFAULT, properties);
 	}
 	
 	public NXFile(RandomAccessFile file) throws IOException {
@@ -63,6 +74,7 @@ public class NXFile {
 		this.file = file;
 		this.parseProperties = properties;
 		low_memory = parseProperties.contains(NXReadMode.LOW_MEMORY);
+		lazy_strings = parseProperties.contains(NXReadMode.EAGER_PARSE_STRINGS) || low_memory;
 		
 		if (open) {
 			this.open();
@@ -91,21 +103,42 @@ public class NXFile {
 	
 	private void parseStrings()
 	{
-		strings = new String[header.getStringCount()];
-		stringsb = new byte[header.getStringCount()][];
-		slea.seek(header.getStringOffset());
+		long offset = header.getStringOffset();
+		int stringCount = header.getStringCount();
+		strings = new String[stringCount];
 		
-		for(int i = 0; i < strings.length; i++) {
-			//strings[i] = slea.getUTFString();
-			stringsb[i] = slea.getUTFStringB();
+		slea.seek(offset);
+		if(!lazy_strings) {
+			stringsb = new byte[stringCount][];
+			
+			for(int i = 0; i < strings.length; i++) {
+				//strings[i] = slea.getUTFString();
+				stringsb[i] = slea.getUTFStringB();
+			}
+		} else {
+			string_offsets = new long[stringCount];
+			for(int i = 0; i < stringCount; i++) {
+				int size = slea.getUShort();
+				string_offsets[i] = offset;
+				slea.skip(size);
+				offset += (size + 2);
+			}
 		}
 	}
 	
 	public String getString(int id) {
 		try {
 			if(strings[id] == null) {
-				strings[id] = new String(stringsb[id], "UTF-8"); //TODO: benchmark if keeping them is necessary (single return mostly)
-				stringsb[id] = null; //force GC
+				if(lazy_strings) {
+					lock();
+					try { //TODO: check all deadlocks that could happen during getstring
+						slea.seek(string_offsets[id]);
+						strings[id] = slea.getUTFString();
+					} finally { unlock(); }
+				} else {
+					strings[id] = new String(stringsb[id], "UTF-8"); //TODO: benchmark if keeping them is necessary (single return mostly)
+					stringsb[id] = null; //force GC
+				}
 			}
 			return strings[id];
 		} catch (UnsupportedEncodingException e) {
@@ -128,12 +161,12 @@ public class NXFile {
 		return root;
 	}
 	
-	public NXNode resolvePath(String path) {
+	public NXNode resolvePath(String... path) {
 		NXNode currentNode = getRoot();
-		String[] splitted = path.split("/");
-		int offset = path.startsWith("/") ? 1 : 0;
-		while(offset < splitted.length) {
-			currentNode = currentNode.getChild(splitted[offset++]);
+		
+		int offset = 0;
+		while(offset < path.length) {
+			currentNode = currentNode.getChild(path[offset++]);
 			if(currentNode == null)
 				throw new NXException("Invalid path");
 		}

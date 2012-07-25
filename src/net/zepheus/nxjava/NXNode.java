@@ -18,8 +18,8 @@
 
 package net.zepheus.nxjava;
 
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 public abstract class NXNode implements Iterable<NXNode> {
@@ -45,13 +45,17 @@ public abstract class NXNode implements Iterable<NXNode> {
 	public abstract Object getValue();
 
 	public NXNode getChild(String name) {
-		if(hasChild(name))
-			return children.get(name);
-		else return null;
+		// it seems not calling hasChild here speeds things up
+		if(childCount == 0)
+			return null;
+		else if(children == null)
+			parseChildren();
+		
+		return children.get(name);
 	}
 	
 	private void parseChildren() {
-		children = new LinkedHashMap<String, NXNode>(); //TODO: benchmark faster iterations through linked 
+		children = new HashMap<String, NXNode>();
 		
 		file.lock();
 		try {
@@ -66,9 +70,9 @@ public abstract class NXNode implements Iterable<NXNode> {
 	public boolean hasChild(String name) {
 		if(childCount == 0)
 			return false;
-		
-		if(children == null)
+		else if(children == null)
 			parseChildren();
+		
 		return children.containsKey(name);
 	}
 

@@ -38,7 +38,7 @@ import net.zepheus.nxjava.NXNode;
 public class NXAnimation extends JPanel implements ActionListener {
 	
 	private static final String FILE_PATH = "D:\\Games\\MapleBeta\\Data.nx";
-	private static final String ANIMATION_PATH = "/Mob/8800000.img/attack1";
+	private static final String[] ANIMATION_PATH = { "Mob", "8800000.img", "attack1" };
 
 	private NXFile file;
 	private BufferedImage[] sprites;
@@ -46,16 +46,16 @@ public class NXAnimation extends JPanel implements ActionListener {
 	
 	private Timer timer;
 	
-	public NXAnimation(NXFile file, String folder) {
+	public NXAnimation(NXFile file, String[] animationPath) {
 		this.file = file;
-		loadSprites(folder);
+		loadSprites(animationPath);
 		
 		timer = new Timer(100, this);
 		timer.start();
 	}
 	
-	private void loadSprites(String folder) {
-		NXNode node = file.resolvePath(folder);
+	private void loadSprites(String[] animationPath) {
+		NXNode node = file.resolvePath(animationPath);
 		if(node instanceof NXEmptyNode) {
 			List<BufferedImage> images = new ArrayList<BufferedImage>();
 			for(NXNode sprite : node) {
@@ -91,7 +91,7 @@ public class NXAnimation extends JPanel implements ActionListener {
 	public static void main(String[] args) {
 		try {
 			NXFile file = new NXFile(FILE_PATH);
-			JFrame frame = new JFrame("NX Animation Test: " + ANIMATION_PATH);
+			JFrame frame = new JFrame("NX Animation Test: " + join('/', ANIMATION_PATH));
 			JPanel panel = new JPanel();
 			panel.add(new NXAnimation(file, ANIMATION_PATH));
 			frame.setContentPane(panel);
@@ -102,5 +102,14 @@ public class NXAnimation extends JPanel implements ActionListener {
 		} catch (Exception ex) {
 			System.err.println("Error loading file: " + ex.getMessage()); 
 		}
+	}
+	
+	private static String join(char delimiter, String... args) {
+		StringBuilder builder = new StringBuilder();
+		for(int i = 0; i < args.length - 1; i++) {
+			builder.append(args[i] + delimiter);
+		}
+		builder.append(args[args.length - 1]);
+		return builder.toString();
 	}
 }

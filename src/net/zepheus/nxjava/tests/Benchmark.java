@@ -30,12 +30,15 @@ public class Benchmark {
 	private static final String FILE_PATH = "D:\\Games\\MapleBeta\\DataOnly.nx";
 	
 	public static void main(String[] args) {
+		System.out.println("Press [RETURN] to start benchmark.");
 		try {
+				System.in.read();
 				NXFile file = loadTest(FILE_PATH);
-				accessTest(file, 1000000);
+				//accessTest(file, 1000000);
 				recurseTest(file);
-				memoryTest();
-				
+				//memoryTest();
+				System.out.println("Finished. Press [RETURN] to end.");
+				System.in.read();
 				file.close();
 		} catch (Exception ex) {
 			System.out.println(ex.getMessage());
@@ -63,7 +66,8 @@ public class Benchmark {
 		long start = System.currentTimeMillis();
 		for(int i = 0; i < times * COUNT; i++)
 		{
-			NXNode node = file.resolvePath("Effect/BasicEff.img/LevelUp/5/origin");
+			//NXNode node = file.resolvePath("Effect/BasicEff.img/LevelUp/5/origin");
+			NXNode node = file.resolvePath("Effect", "BasicEff.img", "LevelUp", "5", "origin");
 		}
 		long time = System.currentTimeMillis() - start;
 		long average = time / COUNT;
