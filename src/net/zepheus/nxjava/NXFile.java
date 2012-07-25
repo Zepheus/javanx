@@ -48,6 +48,7 @@ public class NXFile {
 	private NXHeader header;
 	private String[] strings;
 	private byte[][] stringsb;
+	private long[] bmp_offsets;
 	private NXNode root;
 	
 	public NXFile(String path) throws FileNotFoundException, IOException {
@@ -139,6 +140,24 @@ public class NXFile {
 		return currentNode;
 	}
 	
+	public long getBitmapOffset(int id) {
+		int count = header.getBmpCount();
+		if(count == 0 || id > count)
+			return -1;
+		
+		if(bmp_offsets == null) {
+			lock();
+			try {
+				slea.seek(header.getBmpOffset());
+				bmp_offsets = new long[count];
+				for(int i = 0; i < count; i++) {
+					bmp_offsets[i] = slea.getLong();
+				}
+			} finally { unlock(); }
+		}
+		return bmp_offsets[id];
+	}
+	
 	public SeekableLittleEndianAccessor getNodeStream(int id) {
 		if(closed)
 			throw new NXException("File already closed.");
@@ -146,6 +165,13 @@ public class NXFile {
 		SeekableLittleEndianAccessor stream = low_memory ? slea : node_reader;
 		stream.seek((low_memory ? header.getNodeOffset() : 0) + id * NXNode.SIZE);
 		return stream;
+	}
+	
+	public SeekableLittleEndianAccessor getStreamAtOffset(long offset) {
+		if(closed)
+			throw new NXException("File already closed.");
+		slea.seek(offset);
+		return slea;
 	}
 	
 	public void lock()
@@ -165,7 +191,6 @@ public class NXFile {
 		
 		lock();
 		try {
-			//TODO: release memory etc for node reader also
 			file.close();
 			slea = null;
 			node_reader = null;

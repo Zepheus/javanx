@@ -25,9 +25,11 @@ import java.util.Map;
 public abstract class NXNode implements Iterable<NXNode> {
 
 	public static final int SIZE = 20;
-	private String name;
-	private NXNode parent;
-	private NXFile file;
+	private static final Iterator<NXNode> EMPTY_ITERATOR = new EmptyIterator<NXNode>();
+	
+	protected String name;
+	protected NXNode parent;
+	protected NXFile file;
 	private int childCount;
 	private int firstChildId;
 	
@@ -42,7 +44,6 @@ public abstract class NXNode implements Iterable<NXNode> {
 	
 	public abstract Object getValue();
 
-	
 	public NXNode getChild(String name) {
 		if(hasChild(name))
 			return children.get(name);
@@ -73,8 +74,12 @@ public abstract class NXNode implements Iterable<NXNode> {
 
 	@Override
 	public Iterator<NXNode> iterator() {
+		if(childCount == 0)
+			return EMPTY_ITERATOR;
 		
-		return null;
+		if(children == null)
+			parseChildren();
+		return children.values().iterator();
 	}
 	
 	@Override

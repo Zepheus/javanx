@@ -29,7 +29,6 @@ public class NXMP3Node extends NXNode {
 	
 	@Override
 	public Object getValue() {
-		// TODO return music
-		return null;
+		throw new UnsupportedOperationException();
 	}
 }
