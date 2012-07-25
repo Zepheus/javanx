@@ -132,8 +132,10 @@ public class NXFile {
 				if(lazy_strings) {
 					lock();
 					try { //TODO: check all deadlocks that could happen during getstring
+						int cpos = slea.position();
 						slea.seek(string_offsets[id]);
 						strings[id] = slea.getUTFString();
+						slea.seek(cpos);
 					} finally { unlock(); }
 				} else {
 					strings[id] = new String(stringsb[id], "UTF-8"); //TODO: benchmark if keeping them is necessary (single return mostly)
