@@ -20,11 +20,13 @@ package net.zepheus.nxjava;
 
 import java.util.EnumSet;
 import java.util.concurrent.locks.ReentrantLock;
+import java.awt.image.BufferedImage;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 
 public class NXFile {
@@ -55,6 +57,10 @@ public class NXFile {
 	private long[] string_offsets;
 	private long[] bmp_offsets;
 	private long[] mp3_offsets;
+	
+	// Data containers
+	private BufferedImage[] bmp_loaded;
+	private byte[][] mp3_loaded;
 	
 	private NXNode root;
 	
@@ -175,6 +181,69 @@ public class NXFile {
 		return currentNode;
 	}
 	
+	public byte[] getMP3(int id) {
+		byte[] value;
+		if(!low_memory && mp3_loaded != null && (value = mp3_loaded[id]) != null) {
+			return value;
+		} else {
+			long offset = getMP3Offset(id);
+			if(offset < 0)
+				throw new NXException("The NX file does not include this MP3.");
+			
+			lock();
+			try {
+				SeekableLittleEndianAccessor slea = getStreamAtOffset(offset);
+				int size = (int)slea.getUInt(); //Warning: this could go out of bounds (but unlikely)
+				value = slea.getBytes(size);
+			} finally { unlock(); }
+			
+			if(!low_memory) {
+				mp3_loaded[id] = value;
+			}
+			return value;
+		}
+	}
+	
+	public BufferedImage getBitmap(int id) {
+		BufferedImage value;
+		if(!low_memory && bmp_loaded != null && (value = bmp_loaded[id]) != null) {
+			return value;
+		} else {
+			long offset = getBitmapOffset(id);
+			if(offset == -1)
+				throw new NXException("NX file does not this canvas.");
+			
+			lock();
+			try {
+				SeekableLittleEndianAccessor slea = getStreamAtOffset(offset);
+				
+				int width = slea.getUShort();
+				int height = slea.getUShort();
+				long length = slea.getUInt();
+				
+				ByteBuffer output = ByteBuffer.allocateDirect(width * height * 4);
+				NXCompression.decompress(slea.getBuffer(), offset + 4, length + 4, output, 0);
+				output.rewind();
+				output.order(ByteOrder.LITTLE_ENDIAN);
+				
+				//TODO: optimize this without bitshifts.
+				value = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+				for (int h = 0; h < height; h++) {
+					for (int w = 0; w < width; w++) {
+						int b = output.get() & 0xFF;
+						int g = output.get() & 0xFF;
+						int r = output.get() & 0xFF;
+						int a = output.get() & 0xFF;
+						value.setRGB(w, h, (a << 24) | (r << 16) | (g << 8) | b);
+					}
+				}
+			} finally { unlock(); }
+			
+			if(!low_memory) bmp_loaded[id] = value;
+			return value;
+		}
+	}
+	
 	public long getBitmapOffset(int id) {
 		int count = header.getBmpCount();
 		if(count == 0 || id > count)
@@ -186,6 +255,10 @@ public class NXFile {
 			try {
 				populateOffsetTable(bmp_offsets, header.getBmpOffset());
 			} finally { unlock(); }
+			
+			if(!low_memory) {
+				bmp_loaded = new BufferedImage[count];
+			}
 		}
 		return bmp_offsets[id];
 	}
@@ -201,6 +274,10 @@ public class NXFile {
 			try {
 				populateOffsetTable(mp3_offsets, header.getMp3Offset());
 			} finally { unlock(); }
+			
+			if(!low_memory) {
+				mp3_loaded = new byte[count][];
+			}
 		}
 		return mp3_offsets[id];
 	}
