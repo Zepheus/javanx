@@ -32,6 +32,7 @@ import java.nio.channels.FileChannel;
 public class NXFile {
 	
 	public static final String PKG_FORMAT = "PKG3";
+	private static final String ENCODING = "UTF-8";
 	private static final boolean OPEN_BY_DEFAULT = true;
 	private static final EnumSet<NXReadMode> DEFAULT_PARSE_MODE = EnumSet.of(NXReadMode.EAGER_PARSE_STRINGS);
 	
@@ -144,7 +145,7 @@ public class NXFile {
 						slea.seek(cpos);
 					} finally { unlock(); }
 				} else {
-					strings[id] = new String(stringsb[id], "UTF-8"); //TODO: benchmark if keeping them is necessary (single return mostly)
+					strings[id] = new String(stringsb[id], ENCODING);
 					stringsb[id] = null; //force GC
 				}
 			}

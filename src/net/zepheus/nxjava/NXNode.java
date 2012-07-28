@@ -21,6 +21,7 @@ package net.zepheus.nxjava;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 public abstract class NXNode implements Iterable<NXNode> {
 
@@ -55,7 +56,7 @@ public abstract class NXNode implements Iterable<NXNode> {
 	}
 	
 	private void parseChildren() {
-		children = new HashMap<String, NXNode>();
+		children = new HashMap<String, NXNode>(childCount);
 		
 		file.lock();
 		try {
@@ -73,16 +74,16 @@ public abstract class NXNode implements Iterable<NXNode> {
 		else if(children == null)
 			parseChildren();
 		
-		return children.containsKey(name);
+		return children.get(name) != null; //faster than containskey & we don't allow null values
 	}
 
 	@Override
 	public Iterator<NXNode> iterator() {
 		if(childCount == 0)
 			return EMPTY_ITERATOR;
-		
-		if(children == null)
+		else if(children == null)
 			parseChildren();
+		
 		return children.values().iterator();
 	}
 	
